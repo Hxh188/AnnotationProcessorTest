@@ -11,6 +11,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Sgetter
     String name;
+
+    int kk = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
