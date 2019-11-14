@@ -1,0 +1,13 @@
+apply plugin: 'java'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    // 下面两个库版本是jdk 1.7最后一个版本，再没改成1.8之前，不要升级
+    implementation 'com.squareup:javapoet:1.9.0'
+    implementation 'com.google.auto.service:auto-service:1.0-rc3'
+}
+
+sourceCompatibility = "7"
+targetCompatibility = "7"
+
