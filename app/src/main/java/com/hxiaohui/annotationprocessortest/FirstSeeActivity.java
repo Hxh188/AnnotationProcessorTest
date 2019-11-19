@@ -20,10 +20,10 @@ public class FirstSeeActivity extends AppCompatActivity {
 
     public void gotoNext(View view) {
         MainActivity_BindIntent.GetSetter a = new MainActivity_BindIntent.GetSetter();
-        a.setName_k("黄晓辉");
-        a.setAge_k(222);
-        a.setSex_k(false);
-        a.setShit_k(new MyShit("fuck", new String[]{"ooooo1", "oooooooo2"}));
+        a.setName("黄晓辉");
+        a.setAge(222);
+        a.setIsMan(false);
+        a.setShit(new MyShit("fuck", new String[]{"ooooo1", "oooooooo2"}));
         BindUtil.start(this, MainActivity.class, a);
     }
 }

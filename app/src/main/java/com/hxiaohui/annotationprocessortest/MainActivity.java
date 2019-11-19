@@ -12,16 +12,16 @@ import java.io.Serializable;
 
 public class MainActivity extends AppCompatActivity implements Serializable {
 
-    @BindIntent(key = "name_k")
+    @BindIntent(key = "")
     String name;
 
-    @BindIntent(key = "age_k")
+    @BindIntent(key = "")
     int age;
 
-    @BindIntent(key = "sex_k")
+    @BindIntent(key = "")
     boolean isMan;
 
-    @BindIntent(key = "shit_k")
+    @BindIntent(key = "")
     MyShit shit;
 
     @Override

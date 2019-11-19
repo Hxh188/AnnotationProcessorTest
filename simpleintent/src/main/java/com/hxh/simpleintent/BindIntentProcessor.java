@@ -168,8 +168,8 @@ public class BindIntentProcessor extends AbstractProcessor {
                         .append(info.name)
                         .append("=")
                         .append("getSetter.get")
-                        .append(info.key.substring(0, 1).toUpperCase())
-                        .append(info.key.substring(1)).append("()");
+                        .append(info.name.substring(0, 1).toUpperCase())
+                        .append(info.name.substring(1)).append("()");
                 setMethod.addStatement(sb.toString());
             }
 
@@ -195,16 +195,17 @@ public class BindIntentProcessor extends AbstractProcessor {
                 ;
         builder.addSuperinterface(ClassName.get("java.io", "Serializable"));
         for(FieldInfo info : classInfo.fields) {
-            FieldSpec.Builder fieldBuild = FieldSpec.builder(getClassName(info.type), info.key);
+            FieldSpec.Builder fieldBuild = FieldSpec.builder(getClassName(info.type), info.name);
+            fieldBuild.addModifiers(Modifier.PRIVATE);
             builder.addField(fieldBuild.build());
 
-            String nameWithAlpha = info.key.substring(0, 1).toUpperCase() + info.key.substring(1);
+            String nameWithAlpha = info.name.substring(0, 1).toUpperCase() + info.name.substring(1);
 
             MethodSpec.Builder setMethod = MethodSpec.methodBuilder("set" + nameWithAlpha)
                     .addModifiers(Modifier.PUBLIC);
-            setMethod.addParameter(getClassName(info.type), info.key);
+            setMethod.addParameter(getClassName(info.type), info.name);
             StringBuilder sbSet = new StringBuilder();
-            sbSet.append("this.").append(info.key).append("=").append(info.key);
+            sbSet.append("this.").append(info.name).append("=").append(info.name);
             setMethod.addStatement(sbSet.toString());
             builder.addMethod(setMethod.build());
 
@@ -213,7 +214,7 @@ public class BindIntentProcessor extends AbstractProcessor {
                     .addModifiers(Modifier.PUBLIC);
             getMethod.returns(getClassName(info.type));
             StringBuilder sbGet = new StringBuilder();
-            sbGet.append("return this.").append(info.key);
+            sbGet.append("return this.").append(info.name);
             getMethod.addStatement(sbGet.toString());
             builder.addMethod(getMethod.build());
         }
