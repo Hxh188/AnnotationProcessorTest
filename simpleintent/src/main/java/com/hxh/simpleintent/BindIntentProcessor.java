@@ -1,4 +1,4 @@
-package com.hxiaohui.sgetter;
+package com.hxh.simpleintent;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
@@ -27,6 +27,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
@@ -36,7 +37,7 @@ import javax.tools.Diagnostic;
  * @date 2019/11/14
  */
 @AutoService(Processor.class)
-public class SgetterProcessor extends AbstractProcessor {
+public class BindIntentProcessor extends AbstractProcessor {
     private Elements mElementUtils;
     private Messager mMessager;
     private Filer mFiler;
@@ -56,30 +57,31 @@ public class SgetterProcessor extends AbstractProcessor {
            1. set：携带getSupportedAnnotationTypes()中的注解类型，一般不需要用到。
            2. roundEnvironment：processor将扫描到的信息存储到roundEnvironment中，从这里取出所有使用Sgetter注解的字段。
           */
-        Set<? extends Element> sgetterElements = roundEnvironment.getElementsAnnotatedWith(Sgetter.class);
+        Set<? extends Element> sgetterElements = roundEnvironment.getElementsAnnotatedWith(BindIntent.class);
         Map<String, ClassInfo> classes = new HashMap<>();
         if (!sgetterElements.isEmpty()) {
-            log("----------------------------------");
+//            log("----------------------------------");
         }
         for (Element element : sgetterElements) {
-            log("process element [" + element.getSimpleName().toString() + "]");
+//            log("process element [" + element.getSimpleName().toString() + "]");
 
             // 获取注解目标所在的包，在本例中，即使用Sgetter注解的字段所在的类所在的包
             PackageElement packageElement = mElementUtils.getPackageOf(element);
             String pkgName = packageElement.getQualifiedName().toString();
-            log("pkg=" + pkgName);
+//            log("pkg=" + pkgName);
 
             // 获取包装类类型，在本例中，即使用Sgetter注解的字段所在的类
             TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
             String enclosingName = enclosingElement.getQualifiedName().toString(); // enclosingName为完整类名
             String simpleName = enclosingElement.getSimpleName().toString();
-            log("class=" + enclosingName);
+//            log("class=" + enclosingName);
 
+            BindIntent ano = element.getAnnotation(BindIntent.class);
             // 获取字段信息，因为Sgetter只作用于字段，因此这里可以直接强转
             VariableElement variableElement = (VariableElement) element;
             String fieldname = variableElement.getSimpleName().toString();  // 获取字段名
             String fieldtype = variableElement.asType().toString();         // 获取字段类型
-            log("field name=" + fieldname + ", type=" + fieldtype);
+//            log("field name=" + fieldname + ", type=" + fieldtype);
 
             ClassInfo classInfo = classes.get(enclosingName);
             if (classInfo == null) {
@@ -92,12 +94,16 @@ public class SgetterProcessor extends AbstractProcessor {
             FieldInfo fieldInfo = new FieldInfo();
             fieldInfo.name = fieldname;
             fieldInfo.type = fieldtype;
+            fieldInfo.key = ano.key();
             classInfo.fields.add(fieldInfo);
-            log("----------------------------------");
+
+            log("fieldInfo:" + fieldname + " " + fieldtype + " " + ano.key());
+//            log("----------------------------------");
         }
 
         for (ClassInfo classInfo : classes.values()) {
             generateJavaFile(classInfo);
+
         }
 
         return true;
@@ -106,7 +112,7 @@ public class SgetterProcessor extends AbstractProcessor {
     @Override
     public Set<String> getSupportedAnnotationTypes() {
         Set<String> types = new HashSet<>();
-        types.add(Sgetter.class.getCanonicalName());
+        types.add(BindIntent.class.getCanonicalName());
         log("types=" + types);
         return types;
     }
@@ -120,8 +126,8 @@ public class SgetterProcessor extends AbstractProcessor {
     }
 
     private void log(String msg) {
-        mMessager.printMessage(Diagnostic.Kind.NOTE, "SgetterProcessor xxx " + msg);
-        System.out.println("SgetterProcessor " + msg);
+        mMessager.printMessage(Diagnostic.Kind.NOTE, "BindIntentProcessor xxx " + msg);
+        System.out.println("BindIntentProcessor " + msg);
     }
 
     /**
@@ -130,47 +136,49 @@ public class SgetterProcessor extends AbstractProcessor {
      */
     private void generateJavaFile(ClassInfo classInfo) {
         try {
-            TypeSpec.Builder builder = TypeSpec.classBuilder(splitClassName(classInfo.classname)[1] + "Sgetter")
+            TypeSpec.Builder builder = TypeSpec.classBuilder(splitClassName(classInfo.classname)[1] + "_BindIntent")
                     .addModifiers(Modifier.PUBLIC);
-
             // 生成target字段
             TypeName targetClass = getClassName(classInfo.classname);
+
             FieldSpec targetField = FieldSpec.builder(targetClass, "target")
                     .addModifiers(Modifier.PRIVATE)
-//                    .addStatement("this.target = target")
                     .build();
             builder.addField(targetField);
+            FieldSpec intentField = FieldSpec.builder(ClassName.get("android.content", "Intent"), "intent")
+                    .addModifiers(Modifier.PRIVATE)
+                    .build();
+            builder.addField(intentField);
 
             // 生成构造函数
             MethodSpec constructor = MethodSpec.constructorBuilder()
                     .addParameter(ParameterSpec.builder(targetClass, "target").build())
                     .addModifiers(Modifier.PUBLIC)
+                    .addStatement("this.target = target")
+                    .addStatement("this.intent = target.getIntent()")
                     .build();
             builder.addMethod(constructor);
 
-            for(FieldInfo fieldInfo : classInfo.fields) {
-                // 生成set方法
+            MethodSpec.Builder setMethod = MethodSpec.methodBuilder("bind")
+                    .addModifiers(Modifier.PUBLIC);
+            setMethod.addStatement("GetSetter getSetter = (GetSetter) intent.getSerializableExtra(\"key\");");
+            for(FieldInfo info : classInfo.fields) {
                 StringBuilder sb = new StringBuilder();
-                sb.append("set").append(fieldInfo.name.substring(0, 1).toUpperCase())
-                        .append(fieldInfo.name.substring(1, fieldInfo.name.length()));
-                MethodSpec setMethod = MethodSpec.methodBuilder(sb.toString())
-                        .addParameter(ParameterSpec.builder(getClassName(fieldInfo.type), fieldInfo.name).build())
-                        .addModifiers(Modifier.PUBLIC)
-                        .addStatement("target.$L = $L", fieldInfo.name, fieldInfo.name)
-                        .build();
-                builder.addMethod(setMethod);
-
-                // 生成get方法
-                sb.delete(0, sb.length());
-                sb.append("get").append(fieldInfo.name.substring(0, 1).toUpperCase())
-                        .append(fieldInfo.name.substring(1, fieldInfo.name.length()));
-                MethodSpec getMethod = MethodSpec.methodBuilder(sb.toString())
-                        .addModifiers(Modifier.PUBLIC)
-                        .addStatement("return target.$L", fieldInfo.name)
-                        .returns(getClassName(fieldInfo.type))
-                        .build();
-                builder.addMethod(getMethod);
+                sb.append("this.target.")
+                        .append(info.name)
+                        .append("=")
+                        .append("getSetter.get")
+                        .append(info.key.substring(0, 1).toUpperCase())
+                        .append(info.key.substring(1)).append("()");
+                setMethod.addStatement(sb.toString());
             }
+
+            builder.addMethod(setMethod.build());
+
+
+            builder.addType(
+                    addGetSet(classInfo)
+            );
 
             JavaFile javaFile = JavaFile.builder(classInfo.pkgName, builder.build()).build();
             javaFile.writeTo(mFiler);
@@ -179,10 +187,45 @@ public class SgetterProcessor extends AbstractProcessor {
         }
     }
 
+    private TypeSpec addGetSet(ClassInfo classInfo) {
+
+        TypeSpec.Builder builder = TypeSpec.classBuilder("GetSetter")
+                .addModifiers(Modifier.STATIC)
+                .addModifiers(Modifier.PUBLIC)
+                ;
+        builder.addSuperinterface(ClassName.get("java.io", "Serializable"));
+        for(FieldInfo info : classInfo.fields) {
+            FieldSpec.Builder fieldBuild = FieldSpec.builder(getClassName(info.type), info.key);
+            builder.addField(fieldBuild.build());
+
+            String nameWithAlpha = info.key.substring(0, 1).toUpperCase() + info.key.substring(1);
+
+            MethodSpec.Builder setMethod = MethodSpec.methodBuilder("set" + nameWithAlpha)
+                    .addModifiers(Modifier.PUBLIC);
+            setMethod.addParameter(getClassName(info.type), info.key);
+            StringBuilder sbSet = new StringBuilder();
+            sbSet.append("this.").append(info.key).append("=").append(info.key);
+            setMethod.addStatement(sbSet.toString());
+            builder.addMethod(setMethod.build());
+
+
+            MethodSpec.Builder getMethod = MethodSpec.methodBuilder("get" + nameWithAlpha)
+                    .addModifiers(Modifier.PUBLIC);
+            getMethod.returns(getClassName(info.type));
+            StringBuilder sbGet = new StringBuilder();
+            sbGet.append("return this.").append(info.key);
+            getMethod.addStatement(sbGet.toString());
+            builder.addMethod(getMethod.build());
+        }
+
+        return builder.build();
+    }
+
 
     private class FieldInfo {
         String name;
         String type;
+        String key;
     }
 
     private class ClassInfo {

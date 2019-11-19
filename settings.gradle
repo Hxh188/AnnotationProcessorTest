@@ -1,1 +1,1 @@
-include ':app', ':sgetter'
+include ':app', ':simpleintent', ':simpleintentutil'
