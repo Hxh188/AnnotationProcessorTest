@@ -27,7 +27,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
@@ -74,7 +73,7 @@ public class BindIntentProcessor extends AbstractProcessor {
             TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
             String enclosingName = enclosingElement.getQualifiedName().toString(); // enclosingName为完整类名
             String simpleName = enclosingElement.getSimpleName().toString();
-//            log("class=" + enclosingName);
+            log("class=" + enclosingName);
 
             BindIntent ano = element.getAnnotation(BindIntent.class);
             // 获取字段信息，因为Sgetter只作用于字段，因此这里可以直接强转
@@ -94,15 +93,21 @@ public class BindIntentProcessor extends AbstractProcessor {
             FieldInfo fieldInfo = new FieldInfo();
             fieldInfo.name = fieldname;
             fieldInfo.type = fieldtype;
-            fieldInfo.key = ano.key();
             classInfo.fields.add(fieldInfo);
 
-            log("fieldInfo:" + fieldname + " " + fieldtype + " " + ano.key());
+            log("fieldInfo:" + fieldname + " " + fieldtype + " ");
 //            log("----------------------------------");
         }
 
         for (ClassInfo classInfo : classes.values()) {
-            generateJavaFile(classInfo);
+            log("--------- " + classInfo.classname);
+            if(classInfo.classname.endsWith("Activity"))
+            {
+                generateJavaFileForActivity(classInfo);
+            }else if(classInfo.classname.endsWith("Fragment"))
+            {
+                generateJavaFileForFragment(classInfo);
+            }
 
         }
 
@@ -134,7 +139,7 @@ public class BindIntentProcessor extends AbstractProcessor {
      * 使用javapoet生成java文件
      * @param classInfo
      */
-    private void generateJavaFile(ClassInfo classInfo) {
+    private void generateJavaFileForActivity(ClassInfo classInfo) {
         try {
             TypeSpec.Builder builder = TypeSpec.classBuilder(splitClassName(classInfo.classname)[1] + "_BindIntent")
                     .addModifiers(Modifier.PUBLIC);
@@ -162,6 +167,63 @@ public class BindIntentProcessor extends AbstractProcessor {
             MethodSpec.Builder setMethod = MethodSpec.methodBuilder("bind")
                     .addModifiers(Modifier.PUBLIC);
             setMethod.addStatement("GetSetter getSetter = (GetSetter) intent.getSerializableExtra(\"key\");");
+            for(FieldInfo info : classInfo.fields) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("this.target.")
+                        .append(info.name)
+                        .append("=")
+                        .append("getSetter.get")
+                        .append(info.name.substring(0, 1).toUpperCase())
+                        .append(info.name.substring(1)).append("()");
+                setMethod.addStatement(sb.toString());
+            }
+
+            builder.addMethod(setMethod.build());
+
+
+            builder.addType(
+                    addGetSet(classInfo)
+            );
+
+            JavaFile javaFile = JavaFile.builder(classInfo.pkgName, builder.build()).build();
+            javaFile.writeTo(mFiler);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 使用javapoet生成java文件
+     * @param classInfo
+     */
+    private void generateJavaFileForFragment(ClassInfo classInfo) {
+        try {
+            TypeSpec.Builder builder = TypeSpec.classBuilder(splitClassName(classInfo.classname)[1] + "_BindIntent")
+                    .addModifiers(Modifier.PUBLIC);
+            // 生成target字段
+            TypeName targetClass = getClassName(classInfo.classname);
+
+            FieldSpec targetField = FieldSpec.builder(targetClass, "target")
+                    .addModifiers(Modifier.PRIVATE)
+                    .build();
+            builder.addField(targetField);
+            FieldSpec intentField = FieldSpec.builder(ClassName.get("android.os", "Bundle"), "intent")
+                    .addModifiers(Modifier.PRIVATE)
+                    .build();
+            builder.addField(intentField);
+
+            // 生成构造函数
+            MethodSpec constructor = MethodSpec.constructorBuilder()
+                    .addParameter(ParameterSpec.builder(targetClass, "target").build())
+                    .addModifiers(Modifier.PUBLIC)
+                    .addStatement("this.target = target")
+                    .addStatement("this.intent = target.getArguments()")
+                    .build();
+            builder.addMethod(constructor);
+
+            MethodSpec.Builder setMethod = MethodSpec.methodBuilder("bind")
+                    .addModifiers(Modifier.PUBLIC);
+            setMethod.addStatement("GetSetter getSetter = (GetSetter) intent.getSerializable(\"key\");");
             for(FieldInfo info : classInfo.fields) {
                 StringBuilder sb = new StringBuilder();
                 sb.append("this.target.")
