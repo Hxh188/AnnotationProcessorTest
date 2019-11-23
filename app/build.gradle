@@ -36,9 +36,16 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    // annotationProcessor专用依赖方式，此依赖下的库不会打包到apk中
-    annotationProcessor project(':simpleintent')
-    // 如果库中仅有processor类，那么不需要compile；如果注解也放在库里，或者还提供了其他类可供调用，那么需要compile
-    implementation project(':simpleintent')
-    implementation project(':simpleintentutil')
+
+    implementation 'com.github.Hxh188:AnnotationProcessorTest:1.0.0'
+//    annotationProcessor 'com.github.Hxh188:AnnotationProcessorTest:simpleintent:1.0.0'
+
+//    implementation 'com.jakewharton:butterknife:8.8.1'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
+
+//    // annotationProcessor专用依赖方式，此依赖下的库不会打包到apk中
+//    annotationProcessor project(':simpleintent')
+//    // 如果库中仅有processor类，那么不需要compile；如果注解也放在库里，或者还提供了其他类可供调用，那么需要compile
+//    implementation project(':simpleintent')
+//    implementation project(':simpleintentutil')
 }

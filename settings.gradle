@@ -1,1 +1,1 @@
-include ':app', ':simpleintent', ':simpleintentutil'
+include ':app', ':simpleintent', ':simpleintent-compiler'
