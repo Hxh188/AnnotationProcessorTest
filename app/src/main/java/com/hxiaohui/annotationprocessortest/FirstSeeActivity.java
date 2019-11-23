@@ -8,7 +8,7 @@ import android.view.View;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.hxh.simpleintentutil.BindUtil;
+//import com.hxh.simpleintentutil.BindUtil;
 
 public class FirstSeeActivity extends AppCompatActivity {
 
@@ -19,9 +19,9 @@ public class FirstSeeActivity extends AppCompatActivity {
     }
 
     public void gotoNext(View view) {
-        MainActivity_BindIntent.GetSetter a = new MainActivity_BindIntent.GetSetter();
-        a.setAaa("黄晓辉");
-        a.setShit(new MyShit("fuck", new String[]{"ooooo1", "oooooooo2"}));
-        BindUtil.start(this, MainActivity.class, a);
+//        MainActivity_BindIntent.GetSetter a = new MainActivity_BindIntent.GetSetter();
+//        a.setAaa("黄晓辉");
+//        a.setShit(new MyShit("fuck", new String[]{"ooooo1", "oooooooo2"}));
+//        BindUtil.start(this, MainActivity.class, a);
     }
 }
