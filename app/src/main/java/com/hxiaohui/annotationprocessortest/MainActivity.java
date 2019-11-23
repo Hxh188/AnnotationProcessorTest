@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity implements Serializable {
 
 //        StringBuilder sb = new StringBuilder();
 //        sb.append("name = ").append(name).append(",").append("age = ").append(age).append(",sex = ").append(isMan);
-//
 //        Toast.makeText(this, aaa, Toast.LENGTH_SHORT).show();
 
         MyFragment f = new MyFragment();
